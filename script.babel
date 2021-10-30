@@ -1,0 +1,275 @@
+// !! IMPORTANT README:
+
+// You may add additional external JS and CSS as needed to complete the project, however the current external resource MUST remain in place for the tests to work. BABEL must also be left in place. 
+
+/***********
+INSTRUCTIONS:
+  - Select the project you would 
+    like to complete from the dropdown 
+    menu.
+  - Click the "RUN TESTS" button to
+    run the tests against the blank 
+    pen.
+  - Click the "TESTS" button to see 
+    the individual test cases. 
+    (should all be failing at first)
+  - Start coding! As you fulfill each
+    test case, you will see them go   
+    from red to green.
+  - As you start to build out your 
+    project, when tests are failing, 
+    you should get helpful errors 
+    along the way!
+    ************/
+
+// PLEASE NOTE: Adding global style rules using the * selector, or by adding rules to body {..} or html {..}, or to all elements within body or html, i.e. h1 {..}, has the potential to pollute the test suite's CSS. Try adding: * { color: red }, for a quick example!
+
+// Once you have read the above messages, you can delete all comments. 
+
+const initialState = {
+  displayNumber: '0', 
+  resetNumber: false,
+  result: null, 
+  num1: null,
+  num2: null,
+  operator:null,
+  operator1:null,
+  pointer: 0
+};
+
+const components = {
+  "=": "equals",
+  "0": "zero", 
+  "1": "one", 
+  "2": "two", 
+  "3": "three", 
+  "4": "four", 
+  "5": "five", 
+  "6": "six", 
+  "7": "seven", 
+  "8": "eight", 
+  "9": "nine",
+  "+": "add", 
+  "-": "subtract", 
+  "*": "multiply",
+  "/": "divide",
+  ".": "decimal",
+  "AC": "clear"
+};
+
+const Button = (props) => {
+  return <button  style={{...props.style}} 
+                  className={props.className} 
+                  key={components[props.name]} 
+                  id={components[props.name]} 
+                  onClick={props.handleClick}
+                  >
+                  {props.name}
+        </button>
+}
+
+Button.defaultProps = { className: "col-3 button"}
+
+class Calculator extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = initialState;    
+    
+    this.numberHandleClick = this.numberHandleClick.bind(this);
+    this.operatorHandleClick = this.operatorHandleClick.bind(this);
+  }
+  
+  Calculate(num1, num2, operator, operator1) {
+    console.log(`num1: ${num1}, num2: ${num2}, operator: ${operator}, operator1: ${operator1}`)
+    num1 = parseFloat(num1);
+    num2 = parseFloat(num2);
+    
+    if (operator1 === "-" && operator !== "-")
+      num2 *= -1;
+
+    let result = 0;
+    switch (operator) {
+      case "+":
+        result = num1 + num2;
+      break;
+      case "-":
+        result = num1 - num2;
+      break;
+      case "*":
+        result = num1 * num2;
+      break;
+      case "/":
+        result = num1 / num2;
+      break;
+      default:
+        console.log("no operator!")
+      break;
+    }
+    return result;
+  }
+  
+  Concat(char) {
+    this.setState(prevState => ({ displayNumber: prevState.displayNumber.concat(char) }));
+  }
+  
+  CountDot(string) {    
+    let count = 0;
+    for (let i = 0; i < string.length; i++) {
+      if (string[i] === ".")
+        count++;
+    }
+    return count;
+  }
+
+  numberHandleClick(e) {
+    const char = e.target.innerHTML;
+    const dotCount = this.CountDot(this.state.displayNumber);
+
+    if (char === ".") {      
+      if (dotCount > 0) return; //skip double "." input        
+      this.Concat(char);
+    } else if (this.state.displayNumber === "0" && char !== ".") { // check if the number is 0 and input should not be "."
+      this.setState({ displayNumber: char});
+    } else if (this.state.resetNumber) {
+      this.setState({ displayNumber: char, 
+                      resetNumber: false});
+    } else {
+      this.Concat(char);
+    }
+  }
+  
+  operatorHandleClick(e){
+    let needCalculate = false;
+    let num1 = this.state.num1;
+    let num2 = this.state.num2;
+    let pointer = 0;
+    const char = e.target.innerHTML;
+    
+    switch (char) {
+      case "AC":
+        this.setState(initialState);
+        return;
+        break;
+      break;
+      case "=":
+        pointer = 0;
+        needCalculate = true;
+
+        if (this.state.pointer === 0)
+          num1 = this.state.displayNumber;
+        else // (this.state.num2 === null)
+          num2 = this.state.displayNumber;
+      break;
+      default:
+        pointer = 1;
+        // - operator handling
+        if (char === '-') {
+          if (this.state.operator !== null) {
+            this.setState({operator1: char});
+            if (this.state.resetNumber)
+              return;
+          } else
+            this.setState({operator: char});
+          } else 
+          // duplicator operator tapped handling
+          if (this.state.resetNumber) {
+            this.setState({operator: char, operator1: null, pointer: pointer});
+            return;
+        }          
+
+        // 3 + 5 * 6 - 2 / 4 should produce 32.5 or 11.5        
+        if (this.state.operator != null)
+          needCalculate = true;
+
+        if (this.state.pointer === 0)
+          num1 = this.state.displayNumber;
+        else 
+          num2 = this.state.displayNumber;
+
+        this.setState({resetNumber: true,
+                       operator: char
+                       });
+    }
+    console.log(`pointer: ${pointer}, num1: ${num1}, num2: ${num2}`);    
+    this.setState({pointer: pointer, num1: num1, num2: num2});
+    
+    if (needCalculate) {      
+      const result = this.Calculate(num1,
+                                    num2,
+                                    this.state.operator,
+                                    this.state.operator1
+                                    );
+      
+      this.setState({displayNumber: result.toString(),
+                     result: result,
+                     resetNumber: true,
+                     num1: result,
+                     operator1: null
+                    });
+    }    
+  }  
+ 
+  render() {
+    return (
+      <div className="container">
+        <div className="row no-gutters">
+          <div className="col panel">
+            {this.state.displayFormula}
+          </div>
+        </div>
+        <div className="row no-gutters">
+          <div className="col panel" id="display">
+            {this.state.displayNumber}
+          </div>
+        </div>
+        <div className="row no-gutters">          
+          <Button className="col-6 button" name="AC" handleClick={this.operatorHandleClick} />
+          <Button name="/" handleClick={this.operatorHandleClick} />
+          <Button name="*" handleClick={this.operatorHandleClick} />
+        </div>
+        <div className="row no-gutters">
+          <Button name="7" handleClick={this.numberHandleClick} />
+          <Button name="8" handleClick={this.numberHandleClick} />
+          <Button name="9" handleClick={this.numberHandleClick}/>
+          <Button name="-" handleClick={this.operatorHandleClick}/>
+        </div>
+        <div className="row no-gutters">
+          <Button name="4" handleClick={this.numberHandleClick}/>
+          <Button name="5" handleClick={this.numberHandleClick}/>
+          <Button name="6" handleClick={this.numberHandleClick}/>
+          <Button name="+" handleClick={this.operatorHandleClick}/>
+        </div>
+        <div className="row no-gutters">
+          <div className="col-9">
+            <div className="row no-gutters">
+              <Button className="col-4 button" name="1" handleClick={this.numberHandleClick}/>
+              <Button className="col-4 button" name="2" handleClick={this.numberHandleClick}/>
+              <Button className="col-4 button" name="3" handleClick={this.numberHandleClick}/>
+            </div>
+            <div className="row no-gutters">
+              <Button className="col-8 button" name="0" handleClick={this.numberHandleClick}/>
+              <Button className="col-4 button" name="." handleClick={this.numberHandleClick}/>
+            </div>
+          </div>
+          <div className="col-3">
+            <Button className="button" style={{height: "100%", width: "100%"}} name="=" handleClick={this.operatorHandleClick}></Button>
+          </div>
+        </div>
+        {/*
+        <div>
+  displayNumber: {this.state.displayNumber} <br/>
+  resetNumber: {this.state.resetNumber.toString()} <br/>
+  result: {this.state.result} <br/>
+  num1: {this.state.num1} <br/>
+  num2: {this.state.num2} <br/>
+  operator: {this.state.operator} <br/>
+  operator1: {this.state.operator1} <br/>
+  pointer: {this.state.pointer} <br/>
+        </div>
+      */}
+      </div>
+    );
+  }
+}
+
+ReactDOM.render(<Calculator/>,document.getElementById("root"));
